@@ -6,7 +6,9 @@ import sys
 import json
 import os
 import requests
+import threading
 import sentry_sdk
+import git
 from urllib.request import urlopen
 from dotenv import load_dotenv
 
@@ -17,6 +19,7 @@ load_dotenv()
 # Global variables
 servers = []
 last_update = 0
+current_sha = None
 
 # DotEnv stuff
 url = os.getenv('URL') + '/api/v1'
@@ -25,6 +28,7 @@ ip = os.getenv('IP')
 metric_id = os.getenv('METRIC_ID')
 api_key = os.getenv('API_KEY')
 interval = os.getenv('INTERVAL')
+sentry_url = os.getenv('SENTRY_URL')
 
 # Cache
 steam_api = 'http://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/'
@@ -33,7 +37,8 @@ headers = {
 }
 
 # Sentry
-sentry_sdk.init("https://56f764802db84f63a5b18351cd2973c0@sentry.io/1377393")
+sentry_sdk.init(sentry_url)
+
 
 def update_server_list() -> None:
     # Clear server objects
@@ -70,8 +75,23 @@ def check_for_update():
         print('{0} seconds remaining for update'.format(update_interval - int(d)))
 
 
+def check_for_new_version():
+    global current_sha
+
+    repo = git.Repo()
+    sha = repo.head.object.hexsha
+
+    if current_sha is None:
+        print('Running on commit #{0}'.format(sha))
+        current_sha = sha
+    elif current_sha != sha:
+        print('New version found, quitting...')
+        quit(0)
+
+
 while True:
     print()
+    check_for_new_version()
     check_for_update()
 
     total_players = 0
