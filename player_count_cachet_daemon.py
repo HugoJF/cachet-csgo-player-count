@@ -6,6 +6,7 @@ import sys
 import json
 import os
 import requests
+import sentry_sdk
 from urllib.request import urlopen
 from dotenv import load_dotenv
 
@@ -31,13 +32,18 @@ headers = {
     'X-Cachet-Token': api_key
 }
 
+# Sentry
+sentry_sdk.init("https://56f764802db84f63a5b18351cd2973c0@sentry.io/1377393")
 
-def update_server_list():
+def update_server_list() -> None:
+    # Clear server objects
     servers.clear()
-    html = urlopen(steam_api + '?addr={0}'.format(ip)).read().decode('utf-8')
+
+    # Request from SteamAPI
+    html = requests.get('{0}?addr={1}'.format(steam_api, ip))
 
     # Decode response to JSON
-    res = json.loads(html)
+    res = json.loads(html.text)
     print('Response received from Steam')
 
     # Point to servers array
